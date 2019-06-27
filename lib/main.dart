@@ -1,10 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_course/pages/auth.dart';
-import 'package:flutter_course/pages/products_admin.dart';
-import 'package:flutter_course/pages/products.dart';
-import 'package:flutter_course/pages/product.dart';
 
-void main() => runApp(MyApp());
+import 'package:scoped_model/scoped_model.dart';
+// import 'package:flutter/rendering.dart';
+
+import './pages/auth.dart';
+import './pages/products_admin.dart';
+import './pages/products.dart';
+import './pages/product.dart';
+import './scoped-models/main.dart';
+import './models/product.dart';
+
+void main() {
+  // debugPaintSizeEnabled = true;
+  // debugPaintBaselinesEnabled = true;
+  // debugPaintPointersEnabled = true;
+  runApp(MyApp());
+}
 
 class MyApp extends StatefulWidget {
   @override
@@ -14,54 +25,45 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  List<Map<String, dynamic>> _products = [];
-
-  void _addProduct(Map<String, dynamic> product) {
-    setState(() {
-      _products.add(product);
-    });
-  }
-
-  void _deleteProduct(int index) {
-    setState(() {
-      _products.removeAt(index);
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      routes: {
-        '/': (BuildContext context) => AuthPage(),
-        '/products': (BuildContext context) => ProductsPage(
-              products: _products,
-            ),
-        '/admin': (BuildContext context) => ProductsAdminPage(
-              addProduct: _addProduct,
-              deleteProduct: _deleteProduct,),
-      },
-      onGenerateRoute: (RouteSettings settings) {
-        final List<String> pathElements = settings.name.split('/');
-        if (pathElements[0] != '') {
+    final MainModel model = MainModel();
+    return ScopedModel<MainModel>(
+      model: model,
+      child: MaterialApp(
+        // debugShowMaterialGrid: true,
+        theme: ThemeData(
+            brightness: Brightness.light,
+            primarySwatch: Colors.deepOrange,
+            accentColor: Colors.deepPurple,
+            buttonColor: Colors.deepPurple),
+        // home: AuthPage(),
+        routes: {
+          '/': (BuildContext context) => AuthPage(),
+          '/products': (BuildContext context) => ProductsPage(model),
+          '/admin': (BuildContext context) => ProductsAdminPage(model),
+        },
+        onGenerateRoute: (RouteSettings settings) {
+          final List<String> pathElements = settings.name.split('/');
+          if (pathElements[0] != '') {
+            return null;
+          }
+          if (pathElements[1] == 'product') {
+            final String productId = pathElements[2];
+            final Product product = model.allProducts.firstWhere((Product product) {
+              return product.id == productId;
+            });
+            return MaterialPageRoute<bool>(
+              builder: (BuildContext context) => ProductPage(product),
+            );
+          }
           return null;
-        } else if (pathElements[1] == 'product') {
-          final int index = int.parse(pathElements[2]);
-          return MaterialPageRoute<bool>(
-              builder: (BuildContext context) => ProductPage(
-                  _products[index]['title'], _products[index]['image']));
-        }
-      },
-      onUnknownRoute: (RouteSettings settings) {
-        return MaterialPageRoute(
-          builder: (BuildContext context) => ProductsPage(
-            products: _products,
-          ),
-        );
-      },
+        },
+        onUnknownRoute: (RouteSettings settings) {
+          return MaterialPageRoute(
+              builder: (BuildContext context) => ProductsPage(model));
+        },
+      ),
     );
   }
 }
